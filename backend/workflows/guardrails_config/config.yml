@@ -1,0 +1,13 @@
+# NeMo Guardrails configuration using Groq OpenAI-compatible endpoint
+models:
+  - type: main
+    engine: openai
+    model: llama-3.1-8b-instant
+    parameters:
+      base_url: "https://api.groq.com/openai/v1"
+
+rails:
+  input:
+    flows:
+      - check prompt injection
+      - check off topic
