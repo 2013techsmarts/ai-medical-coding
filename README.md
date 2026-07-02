@@ -194,6 +194,16 @@ Confidence is determined by the `confidence_check` node in the LangGraph workflo
 
 ---
 
+## Human-in-the-Loop (HITL)
+
+Medical coding has severe regulatory, compliance, and billing implications. A single incorrect code can result in compliance audits, delayed payouts, or insurance claim denials. Therefore, this system implements a strict **Human-in-the-Loop (HITL)** architecture:
+
+*   **Audit Queue Gating**: While high-confidence workflows are automated, any note with low or medium confidence is locked inside the manual audit queue. It cannot be finalized or exported for billing until a human coder audits it.
+*   **Step-by-Step Justification Visibility**: The coder is presented with the LLM's full **ReAct reasoning process** (including the step-by-step `THOUGHT` block) explaining why each code was suggested. This speeds up coder review and helps detect diagnostic hallucinations.
+*   **Complete Coder Autonomy**: Human coders can override any AI recommendation. They can delete incorrect codes, adjust justifications, or search the Qdrant database to add new codes manually, ensuring the final database record is 100% human-verified.
+
+---
+
 ## Application Scenario Walkthroughs
 
 Below is a walkthrough of common application scenarios:
