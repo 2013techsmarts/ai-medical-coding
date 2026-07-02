@@ -85,8 +85,10 @@ def run_coding_workflow(note_id: int, db: Session):
         db.add(coding_res)
         db.flush() # Flush to get coding_res.id for linking
         
-        # Auto-Approve if confidence is high
-        if confidence == "high":
+        # Auto-Approve if confidence is high, reject if safety validation failed, else mark reviewed
+        if error_msg and "security validation failure" in error_msg.lower():
+            note.status = "rejected"
+        elif confidence == "high":
             approval = models.Approval(
                 coding_result_id=coding_res.id,
                 coder_id=None, # System Auto-Approved

@@ -239,6 +239,8 @@ export default function DoctorDashboard() {
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
                               note.status === "approved"
                                 ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
+                                : note.status === "rejected"
+                                ? "bg-rose-950/40 border-rose-800 text-rose-400"
                                 : note.status === "reviewed"
                                 ? "bg-blue-950/40 border-blue-800 text-blue-400"
                                 : "bg-amber-950/40 border-amber-800 text-amber-400"
@@ -246,6 +248,8 @@ export default function DoctorDashboard() {
                           >
                             {note.status === "approved"
                               ? "Approved"
+                              : note.status === "rejected"
+                              ? "Rejected"
                               : note.status === "reviewed"
                               ? "AI-Reviewed"
                               : "Pending AI"}
@@ -262,6 +266,8 @@ export default function DoctorDashboard() {
                             >
                               View ICD
                             </button>
+                          ) : note.status === "rejected" ? (
+                            <span className="text-xs text-rose-400 font-semibold italic">Blocked by Safety</span>
                           ) : (
                             <span className="text-xs text-slate-600 italic">Awaiting Approval</span>
                           )}

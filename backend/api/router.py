@@ -62,8 +62,8 @@ def get_notes(
 ):
     if current_user.role == "doctor":
         return db.query(models.ClinicalNote).filter(models.ClinicalNote.doctor_id == current_user.id).all()
-    else: # Coder sees all notes
-        return db.query(models.ClinicalNote).all()
+    else: # Coder sees all notes except rejected ones
+        return db.query(models.ClinicalNote).filter(models.ClinicalNote.status != "rejected").all()
 
 @router.get("/notes/{note_id}", response_model=schemas.NoteResponse)
 def get_note(
