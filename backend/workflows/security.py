@@ -44,6 +44,10 @@ def detect_prompt_injection(text: str) -> bool:
     # Check for split combinations (e.g. "Ignore all previous instructions")
     if "ignore" in text_lower and "instructions" in text_lower:
         return True
+
+    # Check for code hijacking (e.g. asking to write/generate python code)
+    if ("write" in text_lower or "generate" in text_lower or "execute" in text_lower) and ("code" in text_lower or "python" in text_lower):
+        return True
         
     return False
 
