@@ -4,7 +4,7 @@ A production-grade, local-first AI-assisted medical coding platform. Doctors sub
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
@@ -21,7 +21,7 @@ graph TD
     Final -->|Latency & Prompt Logs| Langfuse[Langfuse Tracing]
 ```
 
-## 🔄 Execution Sequence
+## Execution Sequence
 
 ```mermaid
 sequenceDiagram
@@ -70,7 +70,7 @@ sequenceDiagram
 
 ---
 
-## 🛠️ Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 *   **Docker & Docker Compose** (minimum v2.0)
@@ -136,7 +136,7 @@ docker exec -it ai-medical-coding-backend-1 uv run icd-ingest --type pcs
 
 ---
 
-## 🔒 Security & Safety Guardrails
+## Security & Safety Guardrails
 
 The application enforces strict compliance and moderation protocols:
 
@@ -148,7 +148,7 @@ The application enforces strict compliance and moderation protocols:
 
 ---
 
-## 📈 System observability (Langfuse)
+## System observability (Langfuse)
 
 All workflow invocations are instrumented via **Langfuse** (SDK v2). The system propagates `trace_id` through the LangGraph State, creating observations (spans and generations):
 *   Tracks LLM input/output tokens, temperature, and API response latencies.
@@ -157,7 +157,7 @@ All workflow invocations are instrumented via **Langfuse** (SDK v2). The system 
 
 ---
 
-## 🧠 ReAct reasoning Pattern
+## ReAct reasoning Pattern
 The Coding Agent uses the **Reasoning and Action (ReAct)** pattern to improve medical coding accuracy:
 *   Before confirming a code, the agent outputs a structured step-by-step reasoning analysis.
 *   It justifies the diagnostic criteria and rules out non-applicable alternative codes.
@@ -167,7 +167,7 @@ The Coding Agent uses the **Reasoning and Action (ReAct)** pattern to improve me
 
 ---
 
-## 🧪 Systematic evaluations (Evals)
+##  Systematic evaluations (Evals)
 We implement offline evaluations using the **`openevals`** library to prevent quality regression:
 *   **Evaluations script**: Runs base cases from a clinical note benchmark dataset and aggregates **Precision**, **Recall**, and **F1-scores**.
 *   **Exact Match Rate**: Compares lists of suggested codes against reference answers using `openevals.exact.exact_match`.
@@ -180,7 +180,7 @@ docker exec -it ai-medical-coding-backend-1 /app/.venv/bin/python -m backend.tes
 
 ---
 
-## 🤖 Auto-Approval Routing Logic
+## Auto-Approval Routing Logic
 
 The application implements a hybrid decision gateway routing note status:
 1.  **Auto-Approval (Approved)**: High-confidence notes bypass the manual queue. They are immediately marked `approved` in the database, linked to a system-generated `Approval` record, and written to the audit log under the action `auto_approve_coding`.
@@ -194,17 +194,7 @@ Confidence is determined by the `confidence_check` node in the LangGraph workflo
 
 ---
 
-## 👥 Human-in-the-Loop (HITL)
-
-Medical coding has severe regulatory, compliance, and billing implications. A single incorrect code can result in compliance audits, delayed payouts, or insurance claim denials. Therefore, this system implements a strict **Human-in-the-Loop (HITL)** architecture:
-
-*   **Audit Queue Gating**: While high-confidence workflows are automated, any note with low or medium confidence is locked inside the manual audit queue. It cannot be finalized or exported for billing until a human coder audits it.
-*   **Step-by-Step Justification Visibility**: The coder is presented with the LLM's full **ReAct reasoning process** (including the step-by-step `THOUGHT` block) explaining why each code was suggested. This speeds up coder review and helps detect diagnostic hallucinations.
-*   **Complete Coder Autonomy**: Human coders can override any AI recommendation. They can delete incorrect codes, adjust justifications, or search the Qdrant database to add new codes manually, ensuring the final database record is 100% human-verified.
-
----
-
-## 🖼️ Application Scenario Walkthroughs
+## Application Scenario Walkthroughs
 
 Below is a walkthrough of common application scenarios:
 
