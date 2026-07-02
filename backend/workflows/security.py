@@ -41,8 +41,8 @@ def detect_prompt_injection(text: str) -> bool:
         if kw in text_lower:
             return True
             
-    # Check for split combinations (e.g. "Ignore all previous instructions")
-    if "ignore" in text_lower and "instructions" in text_lower:
+    # Check for split combinations (e.g. "Ignore all previous instructions" or "Ignore system prompt")
+    if "ignore" in text_lower and ("instructions" in text_lower or "prompt" in text_lower or "system" in text_lower or "directive" in text_lower):
         return True
 
     # Check for code hijacking (e.g. asking to write/generate python code)
