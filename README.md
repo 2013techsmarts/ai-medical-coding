@@ -10,14 +10,15 @@ A production-grade, local-first AI-assisted medical coding platform. Doctors sub
 graph TD
     Doctor[Doctor / Clinical Note] -->|Submits Dictation| API[FastAPI Backend]
     API -->|Triggers Workflow| Safety[Security: Safety & Redaction Node]
+    Safety -->|If Safety Blocked| DB[(SQLite DB)]
     Safety -->|Redacted Note| RAG[RAG Retrieval Node]
     RAG -->|Queries| Qdrant[(Qdrant Vector DB)]
     RAG -->|Candidate Codes| Agent[LLM Coding Agent Node]
     Agent -->|Groq Llama 3| Filter[Verify & Justify Candidates]
-    Filter -->|AI suggested codes| DB[(SQLite DB)]
-    DB -->|Awaiting Audit| Coder[Coder Dashboard]
+    Filter -->|AI suggested codes| DB
+    DB -->|If status reviewed| Coder[Coder Dashboard]
     Coder -->|Audit & Approves/Overrides| DB
-    DB -->|Finalized ICD Codes| Final[Saved Records & Traces]
+    DB -->|Finalized/Audited| Final[Saved Records & Traces]
     Final -->|Latency & Prompt Logs| Langfuse[Langfuse Tracing]
 ```
 
@@ -38,30 +39,42 @@ sequenceDiagram
     Doctor->>API: POST /api/coding/notes (Dictation)
     API->>DB: Save Note (status: pending)
     API->>Graph: Run Coding Workflow
-    rect rgb(30, 41, 59)
-        note right of Graph: Safety & PHI Redaction
-        Graph->>Qdrant: Hybrid Retrieval (query vector + words)
-        Qdrant-->>Graph: Candidate CM & PCS Codes
-        Graph->>LLM: Analyze note and extract matches from candidate list
-        LLM-->>Graph: Selected Codes + Justifications (ReAct Thought/Action)
-        Graph->>Graph: Confidence Check
-    end
-    Graph->>DB: Save AI Suggestions (CodingResult)
-    Graph->>DB: Update Note status to 'reviewed'
-    Graph->>LF: Record complete trace (latency, inputs, outputs)
-    API-->>Doctor: Note status updated to 'reviewed'
     
-    Coder->>API: GET /api/coding/notes (Audit list)
-    API->>DB: Fetch reviewed notes
-    DB-->>Coder: Notes waiting for approval
-    Coder->>API: GET /api/coding/notes/{id}/ai-suggestions
-    API-->>Coder: Suggested codes & justifications
-    Coder->>Coder: Override, add or delete codes
-    Coder->>API: POST /api/coding/approvals (Finalized codes)
-    API->>DB: Create Approval & link final_codes_id to Note
-    API->>DB: Update Note status to 'approved'
-    API->>DB: Write AuditLog entry
-    API-->>Coder: Approved codes finalized!
+    rect rgb(30, 41, 59)
+        note right of Graph: Safety, PHI Redaction, & LLM Classification
+        alt Safety Triggered (Prompt Injection / Off-Topic)
+            Graph->>DB: Save Note status as 'rejected'
+            Graph->>LF: Record blocked trace
+            API-->>Doctor: Note status updated to 'rejected'
+        else Clinical Input (Passed)
+            Graph->>Qdrant: Hybrid Retrieval (query vector + words)
+            Qdrant-->>Graph: Candidate CM & PCS Codes
+            Graph->>LLM: Analyze note and extract matches from candidate list
+            LLM-->>Graph: Selected Codes + Justifications (ReAct Thought/Action)
+            Graph->>Graph: Confidence Check
+            alt High Confidence
+                Graph->>DB: Auto-Approve (status: approved)
+            else Low/Medium Confidence
+                Graph->>DB: Save Suggestions, status: reviewed
+            end
+            Graph->>LF: Record trace (latency, tokens)
+            API-->>Doctor: Note status updated
+        end
+    end
+    
+    opt Coder Review Queue (Status: reviewed)
+        Coder->>API: GET /api/coding/notes (Audit list)
+        API->>DB: Fetch reviewed notes
+        DB-->>Coder: Notes waiting for approval (excluding rejected)
+        Coder->>API: GET /api/coding/notes/{id}/ai-suggestions
+        API-->>Coder: Suggested codes & justifications
+        Coder->>Coder: Override, add or delete codes
+        Coder->>API: POST /api/coding/approvals (Finalized codes)
+        API->>DB: Create Approval & link final_codes_id to Note
+        API->>DB: Update Note status to 'approved'
+        API->>DB: Write AuditLog entry
+        API-->>Coder: Approved codes finalized!
+    end
     
     Doctor->>API: GET /api/coding/notes/{id}/final
     API->>DB: Fetch approved codes mapping
