@@ -4,7 +4,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from ..config.config import settings
 from ..rag.retrieval import icd_retriever
-from .security import redact_phi, detect_prompt_injection
+from .security import redact_phi, detect_prompt_injection, detect_off_topic
 from langfuse import Langfuse
 import json
 import re
@@ -77,7 +77,16 @@ def check_safety_and_redact(state: WorkflowState) -> WorkflowState:
             "recommended_codes": []
         }
     
-    # 3. PHI Redaction
+    # 3. Off-Topic detection
+    if detect_off_topic(note):
+        return {
+            **state,
+            "redacted_note": "",
+            "error": "Potential security validation failure: blocked by NVIDIA Guardrails",
+            "recommended_codes": []
+        }
+    
+    # 4. PHI Redaction
     redacted = redact_phi(note)
     return {
         **state,

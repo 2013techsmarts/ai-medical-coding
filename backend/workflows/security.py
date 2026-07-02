@@ -46,3 +46,27 @@ def detect_prompt_injection(text: str) -> bool:
         return True
         
     return False
+
+OFF_TOPIC_KEYWORDS = [
+    "recipe",
+    "cookie",
+    "spaghetti",
+    "weather",
+    "poem",
+    "capital of",
+    "who are you",
+    "favorite movie",
+    "tell me a joke"
+]
+
+def detect_off_topic(text: str) -> bool:
+    """
+    Checks if a query is off-topic (e.g. general knowledge, recipes, creative writing)
+    to protect the agent from non-medical tasks.
+    """
+    text_lower = text.lower()
+    for kw in OFF_TOPIC_KEYWORDS:
+        if kw in text_lower:
+            return True
+    return False
+
