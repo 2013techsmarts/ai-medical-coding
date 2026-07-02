@@ -77,7 +77,7 @@ def check_safety_and_redact(state: WorkflowState) -> WorkflowState:
             "recommended_codes": []
         }
     
-    # 3. Off-Topic detection
+    # 3. Off-Topic detection (keyword-based)
     if detect_off_topic(note):
         return {
             **state,
@@ -86,7 +86,35 @@ def check_safety_and_redact(state: WorkflowState) -> WorkflowState:
             "recommended_codes": []
         }
     
-    # 4. PHI Redaction
+    # 4. Adaptive LLM Clinical Classification (Off-Topic Guardrail)
+    if settings.GROQ_API_KEY:
+        try:
+            classifier_llm = ChatGroq(
+                groq_api_key=settings.GROQ_API_KEY,
+                model_name=settings.GROQ_MODEL,
+                temperature=0.0,
+                max_tokens=5
+            )
+            classification_prompt = f"""You are a medical intake safety filter.
+Determine if the input text is a clinical note, patient encounter, medical symptom dictation, or clinical record.
+If it is off-topic, general knowledge, sports, finance (e.g. stocks/tickers), cooking recipes, general coding, or conversation, reply with "OFF_TOPIC".
+Otherwise, reply with "CLINICAL".
+
+Input Text: {note}
+Reply:"""
+            res = classifier_llm.invoke(classification_prompt)
+            reply = res.content.strip().upper()
+            if "OFF_TOPIC" in reply:
+                return {
+                    **state,
+                    "redacted_note": "",
+                    "error": "Potential security validation failure: blocked by NVIDIA Guardrails",
+                    "recommended_codes": []
+                }
+        except Exception as e:
+            logger.warning(f"Off-topic LLM classification failed: {e}")
+    
+    # 5. PHI Redaction
     redacted = redact_phi(note)
     return {
         **state,
