@@ -142,8 +142,10 @@ The application enforces strict compliance and moderation protocols:
 
 *   **PHI Redaction**: High-precision regex engines intercept medical inputs inside `security.py`, stripping out SSNs, phone numbers, email addresses, and doctor/patient names before conveying text to public LLM APIs.
 *   **NVIDIA NeMo Guardrails**: Integrated using `nemoguardrails` with custom Colang definitions:
-    *   **Prompt Injections**: Intercepts instructions-override attempts (e.g. *"Ignore all previous instructions"*).
+    *   **Prompt Injections**: Intercepts instructions-override attempts (e.g. *"Ignore all previous instructions"* or *"Ignore system prompt"*).
     *   **Off-Topic Filtering**: Blocks non-clinical conversational attempts (e.g. asking for cookie recipes).
+*   **Adaptive LLM Clinical Classifier**: A zero-temperature LLM-based filter evaluates if the note is an actual clinical note, patient encounter, or medical record. This blocks arbitrary general knowledge, stock prices, programming, or conversation queries before vector retrieval runs.
+*   **Automatic Note Rejection**: Any input that triggers safety/guardrail violations is instantly marked **`rejected`** in the database. Rejected notes are hidden from the human coder's audit list to keep the workflow clean, and display a red badge with a `Blocked by Safety` warning on the Doctor Dashboard.
 *   **Fallback Protections**: If NeMo Guardrails has connection failures or rate limits, the safety node falls back to local regex validation checks.
 
 ---
