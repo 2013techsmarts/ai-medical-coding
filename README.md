@@ -180,6 +180,30 @@ docker exec -it ai-medical-coding-backend-1 /app/.venv/bin/python -m backend.tes
 
 ---
 
+## 🤖 Auto-Approval Routing Logic
+
+The application implements a hybrid decision gateway routing note status:
+1.  **Auto-Approval (Approved)**: High-confidence notes bypass the manual queue. They are immediately marked `approved` in the database, linked to a system-generated `Approval` record, and written to the audit log under the action `auto_approve_coding`.
+2.  **Human Audit Queue (Reviewed)**: Notes with low or medium confidence are set to `reviewed`, indicating they require manual validation from a human coder on the auditing dashboard.
+
+### Confidence Decision Gating
+Confidence is determined by the `confidence_check` node in the LangGraph workflow based on three criteria:
+*   **Vector Search Score Threshold**: At least one recommended code must have a vector search similarity score **$\ge$ 0.9** inside the Qdrant candidate set.
+*   **Structured Justifications**: Every single recommended code must have a valid reasoning string.
+*   **No Safety Incidents**: No exceptions or safety overrides (prompt injection or off-topic) were triggered during the run.
+
+---
+
+## 👥 Human-in-the-Loop (HITL)
+
+Medical coding has severe regulatory, compliance, and billing implications. A single incorrect code can result in compliance audits, delayed payouts, or insurance claim denials. Therefore, this system implements a strict **Human-in-the-Loop (HITL)** architecture:
+
+*   **Audit Queue Gating**: While high-confidence workflows are automated, any note with low or medium confidence is locked inside the manual audit queue. It cannot be finalized or exported for billing until a human coder audits it.
+*   **Step-by-Step Justification Visibility**: The coder is presented with the LLM's full **ReAct reasoning process** (including the step-by-step `THOUGHT` block) explaining why each code was suggested. This speeds up coder review and helps detect diagnostic hallucinations.
+*   **Complete Coder Autonomy**: Human coders can override any AI recommendation. They can delete incorrect codes, adjust justifications, or search the Qdrant database to add new codes manually, ensuring the final database record is 100% human-verified.
+
+---
+
 ## 🖼️ Application Scenario Walkthroughs
 
 Below is a walkthrough of common application scenarios:
